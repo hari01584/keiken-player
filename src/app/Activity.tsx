@@ -6,8 +6,8 @@ import { Slider } from '@/components/ui/slider'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Volume2, VolumeX, Play, Pause, ChevronUp, ChevronDown, 
          ChevronRight, ChevronLeft, UserCog, Clock, Users, Settings,
-         Plus, X, ExternalLink, Trash2 } from 'lucide-react'
-import Hls from 'hls.js'
+         Plus, X, ExternalLink, Trash2, ArrowRight } from 'lucide-react'
+import ReactPlayer from 'react-player/lazy'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
@@ -57,29 +57,15 @@ export const Activity = () => {
   const [isBottomBarPinned, setIsBottomBarPinned] = useState(false);
   const [isSeekingLocally, setIsSeekingLocally] = useState(false);
   const [loadingPlaylist, setLoadingPlaylist] = useState(true);
+  const [showUnsyncBanner, setShowUnsyncBanner] = useState(false);
+  const [timeDrift, setTimeDrift] = useState(0);
   
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const playerRef = useRef<ReactPlayer | null>(null);
   const timeSyncInterval = useRef<NodeJS.Timeout | null>(null);
   const proxiedUrlCache = useRef<Map<string, string>>(new Map());
   
   const isHost = currentUserId === hostId;
   const currentVideo = playlist.find(video => video.id === currentVideoId) || null;
-
-  const loadProxiedStream = (url: string) => {
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-    }
-    if (Hls.isSupported()) {
-      hlsRef.current = new Hls();
-      hlsRef.current.loadSource(url);
-      if (videoRef.current) {
-        hlsRef.current.attachMedia(videoRef.current);
-      }
-    } else if (videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
-      videoRef.current.src = url;
-    }
-  };
 
   // Determine host when first user joins
   useEffect(() => {
@@ -91,20 +77,38 @@ export const Activity = () => {
     }
   }, [currentUserId, hostId]);
 
+  // Monitor time drift between local player and host
   useEffect(() => {
-    if (currentVideoId && playlist.length > 0) {
-      const selected = playlist.find(video => video.id === currentVideoId);
-      if (selected && selected.url) {
-        loadProxiedStream(selected.url);
-      }
-    }
+    if (!syncPlayback || isHost || !playerRef.current) return;
     
-    return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
+    const checkTimeDrift = () => {
+      const currentPlayerTime = playerRef.current?.getCurrentTime() || 0;
+      const drift = Math.abs(currentPlayerTime - hostTime);
+      setTimeDrift(drift);
+      
+      // Show unsync banner if drift is over 3 seconds
+      if (drift > 3) {
+        setShowUnsyncBanner(true);
+      } else {
+        setShowUnsyncBanner(false);
       }
     };
-  }, [currentVideoId, playlist]);
+    
+    const interval = setInterval(checkTimeDrift, 5000);
+    return () => clearInterval(interval);
+  }, [syncPlayback, isHost, hostTime]);
+
+  // Sync with host time for non-host users
+  useEffect(() => {
+    if (!syncPlayback || isHost || !playerRef.current) return;
+    
+    // When host time changes significantly, sync local time
+    const diff = Math.abs(hostTime - currentTime);
+    if (diff > 2 && !isSeekingLocally) {
+      playerRef.current.seekTo(hostTime, 'seconds');
+      setCurrentTime(hostTime);
+    }
+  }, [hostTime, syncPlayback, isHost]);
 
   const handlePlayPause = () => {
     if (isHost || !syncPlayback) {
@@ -121,11 +125,11 @@ export const Activity = () => {
   };
   
   const handleSeek = (value: number[]) => {
-    if (!videoRef.current) return;
+    if (!playerRef.current) return;
     
     if (isHost || !syncPlayback) {
       setIsSeekingLocally(true);
-      videoRef.current.currentTime = value[0];
+      playerRef.current.seekTo(value[0], 'seconds');
       setCurrentTime(value[0]);
       
       if (isHost) {
@@ -144,23 +148,32 @@ export const Activity = () => {
     }
   };
 
-// Add a function to force-sync other participants
-const handleForceSyncAll = useCallback(() => {
-  if (!videoRef.current) return;
-  // Only host updates hostTime, forcing all synced clients to jump
-  if (isHost) {
-    setHostTime(videoRef.current.currentTime);
-    toast.info("All viewers have been synced to your current time");
-  }
-}, [isHost, setHostTime]);
+  // Add a function to jump to host's current time
+  const jumpToHostTime = useCallback(() => {
+    if (!playerRef.current) return;
+    playerRef.current.seekTo(hostTime, 'seconds');
+    setCurrentTime(hostTime);
+    setShowUnsyncBanner(false);
+    toast.success("Jumped to host's current time");
+  }, [hostTime]);
 
-const handleDeleteVideo = (videoId: string) => {
-  if (!isHost) {
-    toast.error("Only the host can delete videos");
-    return;
-  }
-  setPlaylist((prev) => prev.filter((v) => v.id !== videoId));
-};
+  // Add a function to force-sync other participants
+  const handleForceSyncAll = useCallback(() => {
+    if (!playerRef.current) return;
+    // Only host updates hostTime, forcing all synced clients to jump
+    if (isHost) {
+      setHostTime(playerRef.current.getCurrentTime() || 0);
+      toast.info("All viewers have been synced to your current time");
+    }
+  }, [isHost, setHostTime]);
+
+  const handleDeleteVideo = (videoId: string) => {
+    if (!isHost) {
+      toast.error("Only the host can delete videos");
+      return;
+    }
+    setPlaylist((prev) => prev.filter((v) => v.id !== videoId));
+  };
 
   const addVideoToPlaylist = async () => {
     if (!newVideoUrl) {
@@ -216,9 +229,10 @@ const handleDeleteVideo = (videoId: string) => {
   const toggleSyncPlayback = (value: boolean) => {
     setSyncPlayback(value);
     
-    if (value && videoRef.current) {
+    if (value && playerRef.current) {
       // When enabling sync, immediately sync with host time
-      videoRef.current.currentTime = hostTime;
+      playerRef.current.seekTo(hostTime, 'seconds');
+      setCurrentTime(hostTime);
     }
     
     toast.info(value ? "Playback synced with host" : "Individual playback enabled");
@@ -248,12 +262,67 @@ const handleDeleteVideo = (videoId: string) => {
            onMouseEnter={() => !isBottomBarPinned && setControlsVisible(true)}
            onMouseLeave={() => !isBottomBarPinned && setControlsVisible(false)}>
         
-        {/* Video element */}
-        <video 
-          ref={videoRef}
-          className="w-full h-full object-contain"
-          onClick={handlePlayPause}
-        />
+        {/* ReactPlayer element */}
+        <div className="w-full h-full" onClick={handlePlayPause}>
+          {currentVideo?.url && (
+            <ReactPlayer
+              ref={playerRef}
+              url={currentVideo.url}
+              width="100%"
+              height="100%"
+              playing={isPlaying}
+              volume={isMuted ? 0 : volume / 100}
+              muted={isMuted}
+              onPlay={() => {
+                if (isHost) setPlaying(true);
+              }}
+              onPause={() => {
+                if (isHost) setPlaying(false);
+              }}
+              onProgress={(progress) => {
+                if (!isSeekingLocally) {
+                  setCurrentTime(progress.playedSeconds);
+                  // Only host updates the global time
+                  if (isHost) {
+                    setHostTime(progress.playedSeconds);
+                  }
+                }
+              }}
+              onDuration={setDuration}
+              onBuffer={() => console.log("Buffering...")}
+              onBufferEnd={() => console.log("Buffer ended")}
+              config={{
+                file: {
+                  forceHLS: true,
+                  hlsOptions: {
+                    enableWorker: true
+                  },
+                  attributes: {
+                    style: { width: '100%', height: '100%', objectFit: 'contain' }
+                  }
+                }
+              }}
+            />
+          )}
+        </div>
+        
+        {/* Unsync notification banner */}
+        {showUnsyncBanner && !isHost && syncPlayback && (
+          <div className="absolute top-12 left-0 right-0 flex justify-center">
+            <div className="bg-yellow-900/80 text-yellow-100 px-4 py-2 rounded-md flex items-center gap-2">
+              <Clock size={16} />
+              <span>You're {timeDrift.toFixed(1)}s behind the host</span>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="ml-2 bg-yellow-700 border-yellow-600 text-yellow-100"
+                onClick={jumpToHostTime}
+              >
+                <ArrowRight size={14} className="mr-1" /> Jump to Host's Time
+              </Button>
+            </div>
+          </div>
+        )}
         
         {!currentVideo && (
           <div className="absolute inset-0 flex items-center justify-center flex-col text-white/70">
@@ -344,6 +413,19 @@ const handleDeleteVideo = (videoId: string) => {
                 <span className="text-sm sm:hidden">
                   {formatTime(currentTime)}
                 </span>
+
+                {/* Jump to host time button (for non-hosts) */}
+                {!isHost && syncPlayback && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={jumpToHostTime}
+                    className="text-xs text-blue-400 hover:bg-blue-900/30"
+                    title="Jump to Host's Position"
+                  >
+                    <ArrowRight size={12} className="mr-1" /> Jump to Host
+                  </Button>
+                )}
               </div>
               
               {/* Volume control */}
@@ -480,13 +562,28 @@ const handleDeleteVideo = (videoId: string) => {
             </div>
           )}
           
-          {/* Non-host sync indicator */}
-          {!isHost && syncPlayback && (
+          {/* Non-host sync controls */}
+          {!isHost && (
             <div className="border-b border-zinc-800 p-3">
-              <div className="flex items-center gap-2 text-sm bg-blue-900/30 p-2 rounded">
-                <Clock size={14} className="text-blue-400" />
-                <span>Playback controlled by {hostId}</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock size={14} />
+                  <span>Sync with Host</span>
+                </div>
+                <Switch
+                  checked={syncPlayback}
+                  onCheckedChange={toggleSyncPlayback}
+                />
               </div>
+              
+              {syncPlayback && (
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-xs text-blue-400">Host: {hostId}</span>
+                  <Button variant="outline" size="sm" onClick={jumpToHostTime} className="h-7 text-xs">
+                    <ArrowRight size={12} className="mr-1" /> Jump to Host
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           
