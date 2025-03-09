@@ -20,15 +20,6 @@ import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Events, Types } from '@discord/embedded-app-sdk'
 
-// Mock playlist data - replace with your actual data source
-const mockPlaylist = [
-  { id: 1, title: 'Video 1', duration: '10:30', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
-  { id: 2, title: 'Video 2', duration: '5:20', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
-  { id: 3, title: 'Video 3', duration: '8:15', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
-  { id: 4, title: 'Video 4', duration: '12:45', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
-  { id: 5, title: 'Video 5', duration: '3:33', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
-];
-
 interface Video {
   id: string;
   title: string;
@@ -138,6 +129,24 @@ export const Activity = () => {
     }
   };
 
+// Add a function to force-sync other participants
+const handleForceSyncAll = useCallback(() => {
+  if (!videoRef.current) return;
+  // Only host updates hostTime, forcing all synced clients to jump
+  if (isHost) {
+    setHostTime(videoRef.current.currentTime);
+    toast.info("All viewers have been synced to your current time");
+  }
+}, [isHost, setHostTime]);
+
+const handleDeleteVideo = (videoId: string) => {
+  if (!isHost) {
+    toast.error("Only the host can delete videos");
+    return;
+  }
+  setPlaylist((prev) => prev.filter((v) => v.id !== videoId));
+};
+
   const addVideoToPlaylist = async () => {
     if (!newVideoUrl) {
       toast.error("URL is required", {
@@ -153,7 +162,29 @@ export const Activity = () => {
       });
     }
 
-    // Add the video to the playlist! but before doing that, fetch some basic information / proxied url :)
+    // Fetch the proxied URL from /api/hls
+    try {
+      const response = await fetch(`/api/hls?url=${encodeURIComponent(newVideoUrl)}`);
+      const data = await response.json();
+      console.log("Data from /api/hls", data);
+      const newItem: Video = {
+        id: Date.now().toString(),
+        title: newVideoTitle || 'Untitled',
+        url: data.proxiedUrl,
+        duration: 'Unknown',
+        referral: newVideoReferral,
+        addedBy: currentUserId,
+      };
+      // Only host updates the synced playlist
+      if (isHost) {
+        setPlaylist((prev) => [...prev, newItem]);
+        toast.success("Video added to playlist");
+      } else {
+        toast.error("Only the host can add videos");
+      }
+    } catch (error) {
+      toast.error("Failed to reach /api/hls");
+    }
   };
   
   const handleVideoSelect = (video: Video) => {
@@ -196,7 +227,7 @@ export const Activity = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-black">
-      <p className="text-white p-4">Watch Party by {currentUserId}</p>
+      <p className="text-white p-4">Watch Party by {hostId}</p>
       {/* Main video container */}
       <div className="relative flex-1 h-full md:h-full overflow-hidden"
            onMouseEnter={() => !isBottomBarPinned && setControlsVisible(true)}
@@ -424,6 +455,12 @@ export const Activity = () => {
                     <Settings size={12} className="mr-1" /> Manage
                   </Button>
                 </div>
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-sm">Force Sync Everyone</span>
+                  <Button variant="outline" size="sm" onClick={handleForceSyncAll}>
+                    Sync Now
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -444,18 +481,30 @@ export const Activity = () => {
                 <div 
                   key={video.id}
                   onClick={() => handleVideoSelect(video)}
-                  className={`p-2 rounded-md cursor-pointer hover:bg-zinc-800 ${currentVideo.id === video.id ? 'bg-zinc-800' : ''}`}
+                  className={`p-2 rounded-md cursor-pointer hover:bg-zinc-800 ${currentVideo && currentVideo.id === video.id ? 'bg-zinc-800' : ''}`}
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex-1 overflow-hidden">
-                      <h3 className="text-sm font-medium truncate">{video.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium truncate">{video.title}</h3>
+                      </div>
                     </div>
                     <div className="text-xs text-zinc-400 ml-2">
-                      {video.duration}
+                      {/* {video.duration} */}
+                      {isHost && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteVideo(video.id)}
+                            className="text-white hover:bg-white/20"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        )}
                     </div>
                   </div>
-                  {currentVideo.id === video.id && (
-                    <div className="mt-1 flex items-center">
+                  {currentVideo && currentVideo.id === video.id && (
+                    <div className="flex items-center">
                       <div className="w-2 h-2 mr-2 rounded-full bg-blue-500"></div>
                       <span className="text-xs text-blue-400">Now playing</span>
                     </div>
