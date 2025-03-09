@@ -66,6 +66,21 @@ export const Activity = () => {
   const isHost = currentUserId === hostId;
   const currentVideo = playlist.find(video => video.id === currentVideoId) || null;
 
+  const loadProxiedStream = (url: string) => {
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+    }
+    if (Hls.isSupported()) {
+      hlsRef.current = new Hls();
+      hlsRef.current.loadSource(url);
+      if (videoRef.current) {
+        hlsRef.current.attachMedia(videoRef.current);
+      }
+    } else if (videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
+      videoRef.current.src = url;
+    }
+  };
+
   // Determine host when first user joins
   useEffect(() => {
     if (!currentUserId) return;
@@ -80,7 +95,7 @@ export const Activity = () => {
     if (currentVideoId && playlist.length > 0) {
       const selected = playlist.find(video => video.id === currentVideoId);
       if (selected && selected.url) {
-        // loadProxiedStream(selected.url);
+        loadProxiedStream(selected.url);
       }
     }
     
@@ -229,7 +244,7 @@ const handleDeleteVideo = (videoId: string) => {
     <div className="flex flex-col md:flex-row h-screen bg-black">
       <p className="text-white p-4">Watch Party by {hostId}</p>
       {/* Main video container */}
-      <div className="relative flex-1 h-full md:h-full overflow-hidden"
+      <div className="relative flex-1 h-full md:h-full overflow-hidden bg-black flex flex-col"
            onMouseEnter={() => !isBottomBarPinned && setControlsVisible(true)}
            onMouseLeave={() => !isBottomBarPinned && setControlsVisible(false)}>
         
