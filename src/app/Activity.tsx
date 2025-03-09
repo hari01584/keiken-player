@@ -43,10 +43,10 @@ export const Activity = () => {
   }, [currentUserId, hostId]);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-black">
+    <div className="flex flex-row h-screen bg-black">
       <p className="text-white p-4">Watch Party by {hostId}</p>
-      <div className="relative flex-1 h-full md:h-full overflow-hidden bg-black flex flex-col">
-        {/* <VideoPlayer
+      <div className="relative flex-1 h-full overflow-hidden bg-black flex flex-col">
+        <VideoPlayer
           currentVideo={currentVideo}
           isPlaying={isPlaying}
           volume={volume}
@@ -71,7 +71,7 @@ export const Activity = () => {
           onVolumeToggle={handleVolumeToggle}
           onSeek={handleSeek}
           onVolumeChange={(val) => setVolume(val[0])}
-        /> */}
+        />
       </div>
       <Playlist
         playlist={playlist}
