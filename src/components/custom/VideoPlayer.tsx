@@ -1,6 +1,6 @@
 import { Video } from '@/types';
 import React, { useRef } from 'react';
-import ReactPlayer from 'react-player/lazy';
+import ReactPlayer from 'react-player'
 
 interface VideoPlayerProps {
   currentVideo: Video | null;
@@ -11,6 +11,7 @@ interface VideoPlayerProps {
   onPause: () => void;
   onProgress: (progress: any) => void;
   onDuration: (duration: number) => void;
+  playerRef: React.MutableRefObject<ReactPlayer | null>;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -22,9 +23,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onPause,
   onProgress,
   onDuration,
+  playerRef,
 }) => {
-  const playerRef = useRef<ReactPlayer | null>(null);
-
   return (
     <div className="w-full h-full">
       {currentVideo?.url && (
