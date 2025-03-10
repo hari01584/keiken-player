@@ -28,18 +28,42 @@ export const Playlist: React.FC<PlaylistProps> = ({
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoTitle, setNewVideoTitle] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isAddingVideo, setIsAddingVideo] = useState(false);
+  const [addVideoError, setAddVideoError] = useState<string | null>(null);
 
-  const handleAddVideo = () => {
+  const handleAddVideo = async () => {
     if (!newVideoUrl) return;
-    onAddVideo({
-      id: nanoid(),
-      url: newVideoUrl,
-      title: newVideoTitle || `Video ${playlist.length + 1}`,
-      duration: '0:00', // default duration
-    });
-    setNewVideoUrl('');
-    setNewVideoTitle('');
-    setShowAddForm(false);
+    
+    setIsAddingVideo(true);
+    setAddVideoError(null);
+    
+    try {
+      // Call HLS API to get proxied URL
+      const response = await fetch(`/api/hls?url=${encodeURIComponent(newVideoUrl)}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to proxy video URL');
+      }
+      
+      const data = await response.json();
+      
+      // Add video with proxied URL
+      onAddVideo({
+        id: nanoid(),
+        url: data.proxiedUrl,
+        title: newVideoTitle || `Video ${playlist.length + 1}`,
+        duration: '0:00', // default duration
+      });
+      
+      setNewVideoUrl('');
+      setNewVideoTitle('');
+      setShowAddForm(false);
+    } catch (error) {
+      setAddVideoError(error instanceof Error ? error.message : 'Error adding video');
+      console.error('Error adding video:', error);
+    } finally {
+      setIsAddingVideo(false);
+    }
   };
 
   return (
@@ -88,22 +112,28 @@ export const Playlist: React.FC<PlaylistProps> = ({
           {isHost && showAddForm && (
             <div className="mb-4 space-y-2 p-2 bg-zinc-800 rounded-md">
               <Input
-                value={newVideoUrl}
-                onChange={(e) => setNewVideoUrl(e.target.value)}
-                placeholder="Video URL"
-                className="bg-zinc-700 border-zinc-600"
-              />
-              <Input
                 value={newVideoTitle}
                 onChange={(e) => setNewVideoTitle(e.target.value)}
                 placeholder="Title (optional)"
                 className="bg-zinc-700 border-zinc-600"
+                disabled={isAddingVideo}
               />
+              <Input
+                value={newVideoUrl}
+                onChange={(e) => setNewVideoUrl(e.target.value)}
+                placeholder="Video URL"
+                className="bg-zinc-700 border-zinc-600"
+                disabled={isAddingVideo}
+              />
+              {addVideoError && (
+                <p className="text-xs text-red-400 mt-1">{addVideoError}</p>
+              )}
               <div className="flex justify-end gap-2">
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setShowAddForm(false)}
+                  disabled={isAddingVideo}
                   className="text-white border-zinc-600"
                 >
                   Cancel
@@ -112,9 +142,10 @@ export const Playlist: React.FC<PlaylistProps> = ({
                   variant="default" 
                   size="sm"
                   onClick={handleAddVideo}
+                  disabled={isAddingVideo}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  Add
+                  {isAddingVideo ? 'Adding...' : 'Add'}
                 </Button>
               </div>
             </div>
