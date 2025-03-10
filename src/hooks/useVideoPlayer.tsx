@@ -1,4 +1,5 @@
 import { Video } from '@/types';
+import Hls from 'hls.js';
 import { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 
@@ -31,10 +32,9 @@ export const useVideoPlayer = () => {
   
   // Add quality related functions
   const handleQualityChange = (quality: number) => {
-    if (playerRef.current && (playerRef.current as any).setQualityLevel) {
-      (playerRef.current as any).setQualityLevel(quality);
-      setCurrentQuality(quality);
-    }
+    const hls_player = playerRef.current?.getInternalPlayer('hls') as Hls;
+    if (!hls_player) return;
+    hls_player.currentLevel = quality;
   };
 
   return {
