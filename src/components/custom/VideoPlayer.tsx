@@ -146,6 +146,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [playerRef.current]);
 
+
+  const onReady = () => {
+    console.log('Player ready, Init HLS Quality Control');
+    const internalPlayer = playerRef.current?.getInternalPlayer('hls');
+    if (!internalPlayer) {
+      console.error('HLS player not found');
+      return;
+    }
+  };
+
   return (
     <div className="w-full h-full">
       <ReactPlayer
@@ -160,6 +170,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onPause={onPause}
         onProgress={onProgress}
         onDuration={onDuration}
+        onReady={onReady}
         config={{
           file: {
             forceHLS: true,

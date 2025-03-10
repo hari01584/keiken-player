@@ -50,7 +50,7 @@ export const Activity = () => {
     setCurrentQuality,
     handleQualityChange,
     setCurrentVideo,
-  } = useVideoPlayer(isHost, hostTime);
+  } = useVideoPlayer();
 
   const isOutOfSync = useMemo(() => {
     return !isHost && Math.abs(currentTime - hostTime) > 3;
@@ -65,6 +65,7 @@ export const Activity = () => {
 
   const syncWithHost = () => {
     handleSyncWithHost(
+      currentVideo,
       currentHostVideoId,
       hostPlayingState,
       hostTime,
@@ -134,6 +135,17 @@ export const Activity = () => {
     handleAddVideo(video, playlist, setPlaylist, setCurrentHostVideoId);
   };
 
+  function onVideoSelectHandler(video: Video): void {
+    // If host, then set the video for everyone
+    if (isHost) {
+      setCurrentHostVideoId(video.id);
+      setHostTime(0);
+      setHostPlayingState(false);
+      setForceSyncFlag(prev => prev + 1);
+    }
+    setCurrentVideo(video);
+  }
+
   return (
     <div className="flex flex-row h-screen bg-black">
       <div className="relative flex-1 h-full overflow-hidden bg-black flex flex-col">
@@ -199,7 +211,7 @@ export const Activity = () => {
         playlist={playlist}
         currentHostVideoId={currentHostVideoId}
         isHost={isHost}
-        onVideoSelect={(video) => setCurrentHostVideoId(video.id)}
+        onVideoSelect={(video) => onVideoSelectHandler(video)}
         onDeleteVideo={(videoId) => {
           const isCurrentVideo = currentHostVideoId === videoId;
           const newPlaylist = playlist.filter(v => v.id !== videoId);

@@ -2,7 +2,7 @@ import { Video } from '@/types';
 import { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 
-export const useVideoPlayer = (isHost: boolean, hostTime: number) => {
+export const useVideoPlayer = () => {
   const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
   const [isPlaying, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);

@@ -3,6 +3,7 @@ import { Video } from '@/types';
 import { toast } from 'sonner';
 
 export const handleSyncWithHost = (
+  currentVideo: Video | null,
   currentHostVideoId: string | null,
   hostPlayingState: boolean,
   hostTime: number,
@@ -37,7 +38,7 @@ export const handleSyncWithHost = (
     }
   };
 
-  if (currentHostVideoId !== hostVideoId) {
+  if (!currentVideo || currentVideo.id !== hostVideoId) {
     setCurrentVideo(hostVideo);
     // Allow time for the player to load the new video before seeking
     setTimeout(syncVideoAndSeek, 500);
