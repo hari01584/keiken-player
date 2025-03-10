@@ -2,7 +2,7 @@ import type { RoboRequest } from '@robojs/server'
 
 const transformUrlToProxy = (url: string) => {
   const file_extension = ".m3u8"
-  return `https://1346560992015814729.discordsays.com/.proxy/api/bypass?url=${ btoa(url) }${file_extension}`
+  return `/.proxy/api/bypass?url=${ btoa(url) }${file_extension}`
 }
 
 export default async (req: RoboRequest) => {
