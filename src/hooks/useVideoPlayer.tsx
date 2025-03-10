@@ -9,6 +9,10 @@ export const useVideoPlayer = (isHost: boolean, hostTime: number) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isSeekingLocally, setIsSeekingLocally] = useState(false);
   const playerRef = useRef<ReactPlayer | null>(null);
+  
+  // Add quality related state
+  const [qualityLevels, setQualityLevels] = useState<{ value: number; label: string }[]>([]);
+  const [currentQuality, setCurrentQuality] = useState<number>(-1); // Default to auto (-1)
 
   useEffect(() => {
     if (!isHost && playerRef.current) {
@@ -37,6 +41,14 @@ export const useVideoPlayer = (isHost: boolean, hostTime: number) => {
       setIsSeekingLocally(false);
     }, 1000);
   };
+  
+  // Add quality related functions
+  const handleQualityChange = (quality: number) => {
+    if (playerRef.current && (playerRef.current as any).setQualityLevel) {
+      (playerRef.current as any).setQualityLevel(quality);
+      setCurrentQuality(quality);
+    }
+  };
 
   return {
     isPlaying,
@@ -52,5 +64,11 @@ export const useVideoPlayer = (isHost: boolean, hostTime: number) => {
     handlePlayPause,
     handleVolumeToggle,
     handleSeek,
+    // Quality related state and functions
+    qualityLevels,
+    currentQuality,
+    setQualityLevels,
+    setCurrentQuality,
+    handleQualityChange
   };
 };

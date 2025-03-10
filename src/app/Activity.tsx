@@ -36,6 +36,12 @@ export const Activity = () => {
     handlePlayPause,
     handleVolumeToggle,
     handleSeek,
+    // Quality related state and functions
+    qualityLevels,
+    currentQuality,
+    setQualityLevels,
+    setCurrentQuality,
+    handleQualityChange
   } = useVideoPlayer(isHost, hostTime);
 
   const currentVideo = playlist.find((video) => video.id === currentVideoId) || null;
@@ -118,6 +124,9 @@ export const Activity = () => {
             }}
             onDuration={setDuration}
             playerRef={playerRef}
+            // Add quality related props
+            onQualityLevelsChange={setQualityLevels}
+            onCurrentQualityChange={setCurrentQuality}
           />
         </div>
         
@@ -135,6 +144,10 @@ export const Activity = () => {
           onVolumeChange={(val) => setVolume(val[0])}
           onSyncWithHost={handleSyncWithHost}
           onForceSyncAll={handleForceSyncAll}
+          // Add quality related props
+          qualityLevels={qualityLevels}
+          currentQuality={currentQuality}
+          onQualityChange={handleQualityChange}
         />
       </div>
       

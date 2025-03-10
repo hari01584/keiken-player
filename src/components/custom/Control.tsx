@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Volume2, VolumeX, RefreshCw, Users } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, RefreshCw, Users, Settings } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { QualityLevel } from '@/types';
 
 interface ControlsProps {
   isPlaying: boolean;
@@ -18,6 +25,9 @@ interface ControlsProps {
   onVolumeChange: (value: number[]) => void;
   onSyncWithHost: () => void;
   onForceSyncAll: () => void;
+  qualityLevels?: QualityLevel[];
+  currentQuality?: number;
+  onQualityChange?: (level: number) => void;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
@@ -34,6 +44,9 @@ export const Controls: React.FC<ControlsProps> = ({
   onVolumeChange,
   onSyncWithHost,
   onForceSyncAll,
+  qualityLevels = [],
+  currentQuality = -1,
+  onQualityChange,
 }) => {
   return (
     <div className="flex flex-col gap-2 text-white p-3 bg-zinc-900/80">
@@ -61,7 +74,7 @@ export const Controls: React.FC<ControlsProps> = ({
           {!isHost && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger>
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -81,7 +94,7 @@ export const Controls: React.FC<ControlsProps> = ({
           {isHost && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger>
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -96,6 +109,42 @@ export const Controls: React.FC<ControlsProps> = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+          )}
+          
+          {/* Quality Settings Menu */}
+          {qualityLevels.length > 0 && (
+            <DropdownMenu>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <DropdownMenuTrigger>
+                      <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
+                        <Settings size={20} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Quality Settings</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <DropdownMenuContent align="center" className="bg-zinc-900 border border-zinc-700">
+                <div className="px-3 py-2 text-sm text-zinc-400">Quality</div>
+                {qualityLevels.reverse().map((level) => (
+                  <DropdownMenuItem
+                    key={level.value}
+                    className={`${
+                      currentQuality === level.value ? 'bg-zinc-800 text-blue-400' : 'text-white'
+                    } hover:bg-zinc-800`}
+                    onClick={() => {
+                      if (onQualityChange) onQualityChange(level.value);
+                    }}
+                  >
+                    {level.label} {currentQuality === level.value && '✓'}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           
           <Button variant="ghost" size="icon" onClick={onVolumeToggle} className="text-white hover:bg-white/20">

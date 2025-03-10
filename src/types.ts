@@ -1,4 +1,9 @@
 // types.ts
+// Add these to your existing types file
+export interface QualityLevel {
+  value: number;
+  label: string;
+}
 
 // Video interface represents a video object in the playlist
 export interface Video {
