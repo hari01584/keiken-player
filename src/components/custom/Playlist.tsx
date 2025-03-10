@@ -115,14 +115,14 @@ export const Playlist: React.FC<PlaylistProps> = ({
                 value={newVideoTitle}
                 onChange={(e) => setNewVideoTitle(e.target.value)}
                 placeholder="Title (optional)"
-                className="bg-zinc-700 border-zinc-600"
+                className="bg-zinc-700 border-zinc-600 text-white"
                 disabled={isAddingVideo}
               />
               <Input
                 value={newVideoUrl}
                 onChange={(e) => setNewVideoUrl(e.target.value)}
                 placeholder="Video URL"
-                className="bg-zinc-700 border-zinc-600"
+                className="bg-zinc-700 border-zinc-600 text-white"
                 disabled={isAddingVideo}
               />
               {addVideoError && (
@@ -134,7 +134,7 @@ export const Playlist: React.FC<PlaylistProps> = ({
                   size="sm"
                   onClick={() => setShowAddForm(false)}
                   disabled={isAddingVideo}
-                  className="text-white border-zinc-600"
+                  className="border-zinc-600"
                 >
                   Cancel
                 </Button>
