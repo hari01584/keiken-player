@@ -21,6 +21,7 @@ export const Activity = () => {
   const [forceSyncFlag, setForceSyncFlag] = useSyncState(0, ['video', 'force-sync', channelId]);
   const [hostPlayingState, setHostPlayingState] = useSyncState<boolean>(false, ['video', 'playing', channelId]);
   const [playlist, setPlaylist] = useSyncState<Video[]>([], ['playlist', channelId]);
+  const [showControls, setShowControls] = useState(false);
   
   // Have some previous values as well (it really helps)
   const prevHostTime = usePrevious(hostTime);
@@ -147,65 +148,69 @@ export const Activity = () => {
   }
 
   return (
-    <div className="flex flex-row h-screen bg-black">
-      <div className="relative flex-1 h-full overflow-hidden bg-black flex flex-col">
-        <div className="absolute top-4 left-4 z-10 bg-black/60 px-3 py-1 rounded-md text-white text-sm">
-          {hostId ? `Host: ${hostId}` : 'No host assigned'}
-          {isHost && ' (You)'}
+    <div
+      className="relative w-screen h-screen bg-black overflow-hidden"
+      onMouseMove={() => setShowControls(true)}
+      onMouseLeave={() => setShowControls(false)}
+      onClick={() => setShowControls(!showControls)}
+    >
+      <div className="absolute top-4 left-4 z-10 bg-black/60 px-3 py-1 rounded-md text-white text-sm">
+        {hostId ? `Host: ${hostId}` : 'No host assigned'}
+        {isHost && ' (You)'}
+      </div>
+      
+      {isOutOfSync && !isHost && (
+        <div className="absolute top-4 right-4 z-10 bg-orange-900/80 px-3 py-1 rounded-md text-white text-sm flex items-center">
+          <span className="mr-1">Out of sync</span>
+          <button 
+            className="bg-blue-600 hover:bg-blue-700 text-xs px-2 py-0.5 rounded" 
+            onClick={syncWithHost}
+          >
+            Sync now
+          </button>
         </div>
-        
-        {isOutOfSync && !isHost && (
-          <div className="absolute top-4 right-4 z-10 bg-orange-900/80 px-3 py-1 rounded-md text-white text-sm flex items-center">
-            <span className="mr-1">Out of sync</span>
-            <button 
-              className="bg-blue-600 hover:bg-blue-700 text-xs px-2 py-0.5 rounded" 
-              onClick={syncWithHost}
-            >
-              Sync now
-            </button>
-          </div>
-        )}
-        
-        <div className="flex-1 relative">
-          <VideoPlayer
-            currentVideo={currentVideo}
-            isPlaying={isPlaying}
-            volume={volume}
-            isMuted={isMuted}
-            onPlay={() => setPlaying(true)}
-            onPause={() => setPlaying(false)}
-            onProgress={(progress) => {
-              setCurrentTime(progress.playedSeconds);
-              if (isHost) {
-                setHostTime(progress.playedSeconds);
-              }
-            }}
-            onDuration={setDuration}
-            playerRef={playerRef}
-            onQualityLevelsChange={setQualityLevels}
-            onCurrentQualityChange={setCurrentQuality}
-          />
-        </div>
-        
-        <Controls
+      )}
+      
+      <div className="absolute inset-0">
+        <VideoPlayer
+          currentVideo={currentVideo}
           isPlaying={isPlaying}
-          currentTime={currentTime}
-          duration={duration}
           volume={volume}
           isMuted={isMuted}
-          isHost={isHost}
-          isOutOfSync={isOutOfSync}
-          onPlayPause={pauseHandler}
-          onVolumeToggle={handleVolumeToggle}
-          onSeek={handleSeek}
-          onVolumeChange={(val) => setVolume(val[0])}
-          onSyncWithHost={syncWithHost}
-          onForceSyncAll={forceSyncAll}
-          qualityLevels={qualityLevels}
-          currentQuality={currentQuality}
-          onQualityChange={handleQualityChange}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onProgress={(progress) => {
+            setCurrentTime(progress.playedSeconds);
+            if (isHost) {
+              setHostTime(progress.playedSeconds);
+            }
+          }}
+          onDuration={setDuration}
+          playerRef={playerRef}
+          onQualityLevelsChange={setQualityLevels}
+          onCurrentQualityChange={setCurrentQuality}
         />
       </div>
+      
+      <Controls
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+        duration={duration}
+        volume={volume}
+        isMuted={isMuted}
+        isHost={isHost}
+        isOutOfSync={isOutOfSync}
+        onPlayPause={pauseHandler}
+        onVolumeToggle={handleVolumeToggle}
+        onSeek={handleSeek}
+        onVolumeChange={(val) => setVolume(val[0])}
+        onSyncWithHost={syncWithHost}
+        onForceSyncAll={forceSyncAll}
+        qualityLevels={qualityLevels}
+        currentQuality={currentQuality}
+        onQualityChange={handleQualityChange}
+        showControls={showControls}
+      />
       
       <Playlist
         playlist={playlist}

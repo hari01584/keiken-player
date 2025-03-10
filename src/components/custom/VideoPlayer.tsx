@@ -65,33 +65,35 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   return (
-    <div className="w-full h-full">
-      <ReactPlayer
-        ref={playerRef}
-        url={currentVideo?.url}
-        width="100%"
-        height="100%"
-        playing={isPlaying}
-        volume={isMuted ? 0 : volume / 100}
-        muted={isMuted}
-        onPlay={onPlay}
-        onPause={onPause}
-        onProgress={onProgress}
-        onDuration={onDuration}
-        onReady={onAttachQualityHooks}
-        config={{
-          file: {
-            forceHLS: true,
-            hlsOptions: {
-              enableWorker: true,
-              autoStartLoad: true,
+    <div className="flex items-center justify-center w-full h-full">
+      <div className="relative" style={{ aspectRatio: '16/9' }}>
+        <ReactPlayer
+          ref={playerRef}
+          url={currentVideo?.url}
+          width="100%"
+          height="100%"
+          playing={isPlaying}
+          volume={isMuted ? 0 : volume / 100}
+          muted={isMuted}
+          onPlay={onPlay}
+          onPause={onPause}
+          onProgress={onProgress}
+          onDuration={onDuration}
+          onReady={onAttachQualityHooks}
+          config={{
+            file: {
+              forceHLS: true,
+              hlsOptions: {
+                enableWorker: true,
+                autoStartLoad: true,
+              },
+              attributes: {
+                style: { width: '100%', height: '100%', objectFit: 'contain' },
+              },
             },
-            attributes: {
-              style: { width: '100%', height: '100%', objectFit: 'contain' },
-            },
-          },
-        }}
-      />
+          }}
+        />
+      </div>
     </div>
   );
 };

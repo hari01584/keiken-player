@@ -28,6 +28,7 @@ interface ControlsProps {
   qualityLevels?: QualityLevel[];
   currentQuality?: number;
   onQualityChange?: (level: number) => void;
+  showControls: boolean;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
@@ -47,9 +48,16 @@ export const Controls: React.FC<ControlsProps> = ({
   qualityLevels = [],
   currentQuality = -1,
   onQualityChange,
+  showControls,
 }) => {
   return (
-    <div className="flex flex-col gap-2 text-white p-3 bg-zinc-900/80">
+    <div
+      className={`absolute bottom-0 left-0 w-full bg-zinc-900/80 text-white p-3 z-50
+        transition-opacity duration-300
+        ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+      `}
+      onClick={(e) => e.stopPropagation()}
+    >
       <Slider
         min={0}
         max={duration || 100}
