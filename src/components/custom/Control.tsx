@@ -52,7 +52,10 @@ export const Controls: React.FC<ControlsProps> = ({
   onQualityChange,
 }) => {
   return (
-    <div className={cn("relative w-full z-50", className)}>
+    <div 
+      className={cn("relative w-full z-50", className)}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="flex flex-col gap-2 text-white p-3 bg-zinc-900/80">
         <Slider
           min={0}
@@ -121,10 +124,11 @@ export const Controls: React.FC<ControlsProps> = ({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      <DropdownMenuTrigger />
+                      <DropdownMenuTrigger>
                         <Button variant="ghost" size="icon" className="text-white hover:bg-white/20">
                           <Settings size={20} />
                         </Button>
+                      </DropdownMenuTrigger>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Quality Settings</p>

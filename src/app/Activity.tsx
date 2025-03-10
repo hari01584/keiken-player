@@ -148,6 +148,13 @@ export const Activity = () => {
 
   const [showControls, setShowControls] = useState(false);
 
+  useEffect(() => {
+    if (showControls) {
+      const timer = setTimeout(() => setShowControls(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showControls]);
+
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
       <div className="absolute top-4 left-4 z-10 bg-black/60 px-3 py-1 rounded-md text-white text-sm">
@@ -171,7 +178,8 @@ export const Activity = () => {
         className="relative w-full h-full"
         onMouseEnter={() => setShowControls(true)}
         onMouseLeave={() => setShowControls(false)}
-        onClick={pauseHandler}
+        onMouseMove={() => setShowControls(true)}
+        onClick={() => setShowControls(!showControls)}
       >
         <VideoPlayer
           currentVideo={currentVideo}
