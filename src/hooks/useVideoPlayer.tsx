@@ -1,7 +1,9 @@
+import { Video } from '@/types';
 import { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 
 export const useVideoPlayer = (isHost: boolean, hostTime: number) => {
+  const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
   const [isPlaying, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -14,10 +16,12 @@ export const useVideoPlayer = (isHost: boolean, hostTime: number) => {
   const [qualityLevels, setQualityLevels] = useState<{ value: number; label: string }[]>([]);
   const [currentQuality, setCurrentQuality] = useState<number>(-1); // Default to auto (-1)
 
+  // Modified sync behavior - don't auto-sync non-hosts unless they're way off
   useEffect(() => {
     if (!isHost && playerRef.current) {
       const diff = Math.abs(hostTime - currentTime);
-      if (diff > 2 && !isSeekingLocally) {
+      // Only auto-sync if very far out of sync and not seeking locally
+      if (diff > 10 && !isSeekingLocally) {
         playerRef.current.seekTo(hostTime, 'seconds');
         setCurrentTime(hostTime);
       }
@@ -51,12 +55,16 @@ export const useVideoPlayer = (isHost: boolean, hostTime: number) => {
   };
 
   return {
+    currentVideo,
     isPlaying,
     currentTime,
     duration,
     volume,
     isMuted,
     playerRef,
+    qualityLevels,
+    currentQuality,
+    setCurrentVideo,
     setPlaying,
     setCurrentTime,
     setDuration,
@@ -64,9 +72,6 @@ export const useVideoPlayer = (isHost: boolean, hostTime: number) => {
     handlePlayPause,
     handleVolumeToggle,
     handleSeek,
-    // Quality related state and functions
-    qualityLevels,
-    currentQuality,
     setQualityLevels,
     setCurrentQuality,
     handleQualityChange

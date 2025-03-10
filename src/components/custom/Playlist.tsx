@@ -8,7 +8,7 @@ import { nanoid } from 'nanoid';
 
 interface PlaylistProps {
   playlist: Video[];
-  currentVideoId: string | null;
+  currentHostVideoId: string | null;
   isHost: boolean;
   onVideoSelect: (video: Video) => void;
   onDeleteVideo: (videoId: string) => void;
@@ -17,7 +17,7 @@ interface PlaylistProps {
 
 export const Playlist: React.FC<PlaylistProps> = ({
   playlist,
-  currentVideoId,
+  currentHostVideoId,
   isHost,
   onVideoSelect,
   onDeleteVideo,
@@ -163,7 +163,7 @@ export const Playlist: React.FC<PlaylistProps> = ({
                     key={video.id}
                     onClick={() => onVideoSelect(video)}
                     className={`p-2 rounded-md cursor-pointer hover:bg-zinc-800 ${
-                      currentVideoId === video.id ? 'bg-zinc-800' : 'bg-zinc-850'
+                      currentHostVideoId === video.id ? 'bg-zinc-800' : 'bg-zinc-850'
                     }`}
                   >
                     <div className="flex justify-between items-center">
@@ -184,7 +184,7 @@ export const Playlist: React.FC<PlaylistProps> = ({
                         </Button>
                       )}
                     </div>
-                    {currentVideoId === video.id && (
+                    {currentHostVideoId === video.id && (
                       <div className="flex items-center">
                         <div className="w-2 h-2 mr-2 rounded-full bg-blue-500"></div>
                         <span className="text-xs text-blue-400">Now playing</span>

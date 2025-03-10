@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDiscordSdk } from '../hooks/useDiscordSdk';
 import { useSyncState } from '@robojs/sync';
 import { useVideoPlayer } from '../hooks/useVideoPlayer';
@@ -7,6 +7,8 @@ import { Controls } from '@/components/custom/Control';
 import { Playlist } from '@/components/custom/Playlist';
 import { Video } from '@/types';
 import { toast } from 'sonner';
+import { handleSyncWithHost, handleForceSyncAll, handlePause, handleAddVideo } from './videoutils';
+import { usePrevious } from '@/lib/utils';
 
 export const Activity = () => {
   const { accessToken, authenticated, discordSdk, error, session, status } = useDiscordSdk();
@@ -14,21 +16,29 @@ export const Activity = () => {
   const channelId = discordSdk.channelId;
 
   const [hostId, setHostId] = useSyncState<string | null>(null, ['host', channelId]);
-  const [currentVideoId, setCurrentVideoId] = useSyncState<string | null>(null, ['video', 'current', channelId]);
+  const [currentHostVideoId, setCurrentHostVideoId] = useSyncState<string | null>(null, ['video', 'current', channelId]);
   const [hostTime, setHostTime] = useSyncState(0, ['video', 'time', channelId]);
   const [forceSyncFlag, setForceSyncFlag] = useSyncState(0, ['video', 'force-sync', channelId]);
+  const [hostPlayingState, setHostPlayingState] = useSyncState<boolean>(false, ['video', 'playing', channelId]);
   const [playlist, setPlaylist] = useSyncState<Video[]>([], ['playlist', channelId]);
   
-  const [isSynced, setIsSynced] = useState(true);
+  // Have some previous values as well (it really helps)
+  const prevHostTime = usePrevious(hostTime);
+  const prevHostPlayingState = usePrevious(hostPlayingState);
+  const prevCurrentHostVideoId = usePrevious(currentHostVideoId);
+
   const isHost = currentUserId === hostId;
 
   const {
+    currentVideo,
     isPlaying,
     currentTime,
     duration,
     volume,
     isMuted,
     playerRef,
+    qualityLevels,
+    currentQuality,
     setPlaying,
     setCurrentTime,
     setDuration,
@@ -36,15 +46,15 @@ export const Activity = () => {
     handlePlayPause,
     handleVolumeToggle,
     handleSeek,
-    // Quality related state and functions
-    qualityLevels,
-    currentQuality,
     setQualityLevels,
     setCurrentQuality,
-    handleQualityChange
+    handleQualityChange,
+    setCurrentVideo,
   } = useVideoPlayer(isHost, hostTime);
 
-  const currentVideo = playlist.find((video) => video.id === currentVideoId) || null;
+  const isOutOfSync = useMemo(() => {
+    return !isHost && Math.abs(currentTime - hostTime) > 3;
+  }, [isHost, currentTime, hostTime]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -52,72 +62,76 @@ export const Activity = () => {
       setHostId(currentUserId);
     }
   }, [currentUserId, hostId]);
-  
-  // Handle force sync from host
+
+  const syncWithHost = () => {
+    handleSyncWithHost(
+      currentHostVideoId,
+      hostPlayingState,
+      hostTime,
+      playlist,
+      playerRef,
+      isPlaying,
+      setCurrentVideo,
+      setCurrentTime,
+      setPlaying
+    );
+  };
+
   useEffect(() => {
     if (!isHost && forceSyncFlag > 0) {
-      handleSyncWithHost();
+      syncWithHost();
       toast.success("Synced with host. Your playback has been synchronized with the host.");
     }
   }, [forceSyncFlag]);
 
-  const handleSyncWithHost = () => {
-    const hostVideoId = currentVideoId;
-    const hostVideo = playlist.find((v) => v.id === hostVideoId);
+  // First time playing!
+  useEffect(() => {
+    if (playlist.length > 0 && !currentVideo) {
+      setCurrentVideo(
+        playlist.find(v => v.id === currentHostVideoId) || playlist[0]
+      );
+    }
+  }, [playlist, currentVideo, currentHostVideoId, setCurrentVideo]);
 
-    if (!hostVideo) {
-      console.log("Host video not in playlist, cannot sync.");
+  // Identical / Auto Sync (Only when client is already in sync)
+  useEffect(() => {
+    if (isHost) return;
+    if (!currentVideo) return;
+
+    // if not same video, then pass
+    if (prevCurrentHostVideoId !== currentVideo?.id) {
+      return;
+    }
+    // If host only jumped by less than 3 seconds then do not sync
+    if (Math.abs(hostTime - (prevHostTime ?? 0)) < 3 && hostPlayingState === prevHostPlayingState) {
+      return;
+    }
+    // if time diff greater than 3 seconds, then pass (between host jump and client sync)
+    if (Math.abs(currentTime - (prevHostTime ?? 0)) > 3) {
+      return;
+    }
+    // if not at same playing state, then pass
+    if (isPlaying !== prevHostPlayingState) {
       return;
     }
 
-    const syncVideoAndSeek = () => {
-      if (playerRef.current) {
-        playerRef.current.seekTo(hostTime, 'seconds');
-        setCurrentTime(hostTime);
-        setIsSynced(true);
-        toast.success("Synced with host", {
-          description: "Playback synchronized with the host.",
-        });
-      }
-    };
+    // If I am still here, it means client is closely following host, therefore once again sync
+    syncWithHost();
+    // console.log('Auto Synced');
 
-    if (currentVideoId !== hostVideoId) {
-      setCurrentVideoId(hostVideoId);
-      setIsSynced(false);
-      // Allow time for the player to load the new video before seeking
-      setTimeout(syncVideoAndSeek, 500);
-    } else if (playerRef.current && Math.abs(currentTime - hostTime) > 2) {
-      syncVideoAndSeek();
-    }
+    // currentVideo, currentTime, isPlaying, 
+  }, [isHost, currentHostVideoId, hostTime, hostPlayingState, syncWithHost]);
+
+  const forceSyncAll = () => {
+    handleForceSyncAll(isHost, setForceSyncFlag);
   };
 
-  const handleForceSyncAll = () => {
-    if (isHost) {
-      setForceSyncFlag(prev => prev + 1);
-      toast.message("Force sync initiated", {
-        description: "All viewers will sync to your current position.",
-      });
-    }
+  const pauseHandler = () => {
+    handlePause(isHost, isPlaying, handlePlayPause, setHostPlayingState);
   };
 
-  // When the host time changes, check if client is out of sync
-  useEffect(() => {
-    if (!isHost && Math.abs(currentTime - hostTime) > 5) {
-      setIsSynced(false);
-    }
-  }, [hostTime, currentTime, isHost]);
-
-  const handleAddVideo = (video: Video) => {
-    setPlaylist([...playlist, video]);
-    
-    // If this is the first video, also set it as current
-    if (playlist.length === 0) {
-      setCurrentVideoId(video.id);
-    }
-    
-    toast.message("Video added", {
-      description: `"${video.title}" has been added to the playlist.`,
-    });
+  const addVideoHandler = (video: Video) => {
+    handleAddVideo(video, playlist, setPlaylist, setCurrentHostVideoId);
   };
 
   return (
@@ -127,6 +141,18 @@ export const Activity = () => {
           {hostId ? `Host: ${hostId}` : 'No host assigned'}
           {isHost && ' (You)'}
         </div>
+        
+        {isOutOfSync && !isHost && (
+          <div className="absolute top-4 right-4 z-10 bg-orange-900/80 px-3 py-1 rounded-md text-white text-sm flex items-center">
+            <span className="mr-1">Out of sync</span>
+            <button 
+              className="bg-blue-600 hover:bg-blue-700 text-xs px-2 py-0.5 rounded" 
+              onClick={syncWithHost}
+            >
+              Sync now
+            </button>
+          </div>
+        )}
         
         <div className="flex-1 relative">
           <VideoPlayer
@@ -144,7 +170,6 @@ export const Activity = () => {
             }}
             onDuration={setDuration}
             playerRef={playerRef}
-            // Add quality related props
             onQualityLevelsChange={setQualityLevels}
             onCurrentQualityChange={setCurrentQuality}
           />
@@ -157,14 +182,13 @@ export const Activity = () => {
           volume={volume}
           isMuted={isMuted}
           isHost={isHost}
-          isSynced={isSynced}
-          onPlayPause={handlePlayPause}
+          isOutOfSync={isOutOfSync}
+          onPlayPause={pauseHandler}
           onVolumeToggle={handleVolumeToggle}
           onSeek={handleSeek}
           onVolumeChange={(val) => setVolume(val[0])}
-          onSyncWithHost={handleSyncWithHost}
-          onForceSyncAll={handleForceSyncAll}
-          // Add quality related props
+          onSyncWithHost={syncWithHost}
+          onForceSyncAll={forceSyncAll}
           qualityLevels={qualityLevels}
           currentQuality={currentQuality}
           onQualityChange={handleQualityChange}
@@ -173,20 +197,19 @@ export const Activity = () => {
       
       <Playlist
         playlist={playlist}
-        currentVideoId={currentVideoId}
+        currentHostVideoId={currentHostVideoId}
         isHost={isHost}
-        onVideoSelect={(video) => setCurrentVideoId(video.id)}
+        onVideoSelect={(video) => setCurrentHostVideoId(video.id)}
         onDeleteVideo={(videoId) => {
-          const isCurrentVideo = currentVideoId === videoId;
+          const isCurrentVideo = currentHostVideoId === videoId;
           const newPlaylist = playlist.filter(v => v.id !== videoId);
           setPlaylist(newPlaylist);
           
-          // If we deleted the current video, switch to the first video in playlist or null
           if (isCurrentVideo) {
-            setCurrentVideoId(newPlaylist.length > 0 ? newPlaylist[0].id : null);
+            setCurrentHostVideoId(newPlaylist.length > 0 ? newPlaylist[0].id : null);
           }
         }}
-        onAddVideo={handleAddVideo}
+        onAddVideo={addVideoHandler}
       />
     </div>
   );

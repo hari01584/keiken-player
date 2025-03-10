@@ -18,7 +18,7 @@ interface ControlsProps {
   volume: number;
   isMuted: boolean;
   isHost: boolean;
-  isSynced: boolean;
+  isOutOfSync: boolean;  // Updated from isSynced to isOutOfSync
   onPlayPause: () => void;
   onVolumeToggle: () => void;
   onSeek: (value: number[]) => void;
@@ -37,7 +37,7 @@ export const Controls: React.FC<ControlsProps> = ({
   volume,
   isMuted,
   isHost,
-  isSynced,
+  isOutOfSync,
   onPlayPause,
   onVolumeToggle,
   onSeek,
@@ -79,7 +79,7 @@ export const Controls: React.FC<ControlsProps> = ({
                     variant="ghost" 
                     size="icon" 
                     onClick={onSyncWithHost} 
-                    className={`text-white hover:bg-white/20 ${isSynced ? 'text-green-400' : ''}`}
+                    className={`text-white hover:bg-white/20 ${isOutOfSync ? 'text-orange-400' : ''}`}
                   >
                     <RefreshCw size={20} />
                   </Button>
