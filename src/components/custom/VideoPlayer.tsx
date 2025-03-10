@@ -87,7 +87,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               autoStartLoad: true,
             },
             attributes: {
-              style: { width: '100%', height: '100%', objectFit: 'contain' },
+              style: { 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'contain',
+                maxWidth: '100%',
+                maxHeight: '100%',
+              },
             },
           },
         }}

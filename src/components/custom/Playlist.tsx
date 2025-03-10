@@ -67,10 +67,11 @@ export const Playlist: React.FC<PlaylistProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={cn(
-        "flex h-full bg-zinc-900 border-l border-zinc-700 transition-all duration-300 relative",
-        collapsed ? "w-12" : "w-80"
+        "bg-zinc-900 border-l border-zinc-700 transition-all duration-300",
+        "absolute top-0 bottom-0",
+        collapsed ? "right-0 w-12" : "right-0 w-80"
       )}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
