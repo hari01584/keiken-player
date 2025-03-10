@@ -62,12 +62,32 @@ export const Activity = () => {
   }, [forceSyncFlag]);
 
   const handleSyncWithHost = () => {
-    if (playerRef.current && Math.abs(currentTime - hostTime) > 2) {
-      playerRef.current.seekTo(hostTime, 'seconds');
-      setIsSynced(true);
-      toast.message("Synced with host", {
-        description: "Your playback has been synchronized with the host.",
-      });
+    const hostVideoId = currentVideoId;
+    const hostVideo = playlist.find((v) => v.id === hostVideoId);
+
+    if (!hostVideo) {
+      console.log("Host video not in playlist, cannot sync.");
+      return;
+    }
+
+    const syncVideoAndSeek = () => {
+      if (playerRef.current) {
+        playerRef.current.seekTo(hostTime, 'seconds');
+        setCurrentTime(hostTime);
+        setIsSynced(true);
+        toast.success("Synced with host", {
+          description: "Playback synchronized with the host.",
+        });
+      }
+    };
+
+    if (currentVideoId !== hostVideoId) {
+      setCurrentVideoId(hostVideoId);
+      setIsSynced(false);
+      // Allow time for the player to load the new video before seeking
+      setTimeout(syncVideoAndSeek, 500);
+    } else if (playerRef.current && Math.abs(currentTime - hostTime) > 2) {
+      syncVideoAndSeek();
     }
   };
 
