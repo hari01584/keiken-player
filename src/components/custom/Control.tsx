@@ -130,7 +130,7 @@ export const Controls: React.FC<ControlsProps> = ({
               </TooltipProvider>
               <DropdownMenuContent align="center" className="bg-zinc-900 border border-zinc-700">
                 <div className="px-3 py-2 text-sm text-zinc-400">Quality</div>
-                {qualityLevels.reverse().map((level) => (
+                {qualityLevels.slice().reverse().map((level) => (
                   <DropdownMenuItem
                     key={level.value}
                     className={`${
