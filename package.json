@@ -27,7 +27,7 @@
 		"doctor": "sage doctor",
 		"invite": "robo invite",
 		"lint:style": "prettier --write .",
-		"start": "robo start & npm run hlsd",
+		"start": "robo start",
 		"tunnel": ".robo/bin/cloudflared tunnel --url http://localhost:3000",
 		"upgrade": "sage upgrade",
 		"hlsd": "hlsd --host localhost --port 4541 --hooks ./hls_hooks.cjs "
