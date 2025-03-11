@@ -3,3 +3,5 @@ node_modules
 
 # Steve Jobs' legacy
 .DS_Store
+
+.env
