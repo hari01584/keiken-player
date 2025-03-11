@@ -27,10 +27,10 @@
 		"doctor": "sage doctor",
 		"invite": "robo invite",
 		"lint:style": "prettier --write .",
-		"start": "robo start",
+    "start": "robo start & npm run hlsd",
 		"tunnel": ".robo/bin/cloudflared tunnel --url http://localhost:3000",
 		"upgrade": "sage upgrade",
-		"hlsd": "hlsd --host localhost --port 4541 --hooks ./hls_hooks.cjs "
+		"hlsd": "hlsd --host 0.0.0.0 --port 4541 --hooks ./hls_hooks.cjs "
 	},
 	"dependencies": {
 		"@consumet/extensions": "^1.8.1",
