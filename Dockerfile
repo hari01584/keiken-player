@@ -10,6 +10,11 @@ WORKDIR /usr/src/app
 
 COPY --chown=node:node . /usr/src/app/
 
+# Set these variables at build time (really helps with google cloud run)
+ENV DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+ENV VITE_DISCORD_CLIENT_ID=${VITE_DISCORD_CLIENT_ID}
+ENV DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+
 # ~~~~~ Build ~~~~~
 FROM base AS build
 
