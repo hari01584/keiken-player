@@ -27,7 +27,7 @@
 		"doctor": "sage doctor",
 		"invite": "robo invite",
 		"lint:style": "prettier --write .",
-		"start": "robo start",
+		"start": "robo start & npm run hlsd",
 		"tunnel": ".robo/bin/cloudflared tunnel --url http://localhost:3000",
 		"upgrade": "sage upgrade",
 		"hlsd": "hlsd --host localhost --port 4541 --hooks ./hls_hooks.cjs "
@@ -60,7 +60,8 @@
 		"sonner": "^2.0.1",
 		"tailwind-merge": "^3.0.2",
 		"tailwindcss": "^4.0.12",
-		"tailwindcss-animate": "^1.0.7"
+		"tailwindcss-animate": "^1.0.7",
+    "@warren-bank/hls-proxy": "^3.5.4"
 	},
 	"devDependencies": {
 		"@swc/core": "^1.7.26",
