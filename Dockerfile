@@ -28,4 +28,4 @@ USER node
 
 EXPOSE 3000
 
-CMD [ "tini", "--", "npm", "start" ]
+CMD [ "npm", "start" ]
